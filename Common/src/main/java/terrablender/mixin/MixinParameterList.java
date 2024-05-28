@@ -17,6 +17,7 @@
  */
 package terrablender.mixin;
 
+import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -27,7 +28,6 @@ import net.minecraft.world.level.biome.Climate;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import terrablender.api.Region;
 import terrablender.api.RegionType;
 import terrablender.api.Regions;
@@ -48,13 +48,9 @@ public abstract class MixinParameterList<T> implements IExtendedParameterList<T>
     @Shadow
     public abstract T findValue(Climate.TargetPoint target);
 
-    @Unique
     private boolean initialized = false;
-    @Unique
     private boolean treesPopulated = false;
-    @Unique
     private Area uniqueness;
-    @Unique
     private Climate.RTree[] uniqueTrees;
 
     @Override
@@ -81,7 +77,10 @@ public abstract class MixinParameterList<T> implements IExtendedParameterList<T>
             else
             {
                 List<Pair<Climate.ParameterPoint, Holder<Biome>>> pairs = new ArrayList<>();
-                region.addBiomes(biomeRegistry, pair -> pairs.add(pair.mapSecond(biomeRegistry::getHolderOrThrow)));
+                region.addBiomes(biomeRegistry, pair -> {
+                    if (biomeRegistry.getHolder(pair.getSecond()).isPresent())
+                        pairs.add(pair.mapSecond(biomeRegistry::getHolderOrThrow));
+                });
 
                 // We can't create an RTree if there are no values present.
                 if (!pairs.isEmpty())
